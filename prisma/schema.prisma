@@ -1,0 +1,229 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== ENUMS ====================
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPPORT
+}
+
+enum TripStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  HIDDEN
+  FLAGGED
+}
+
+// ==================== MODELS ====================
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  phone         String?
+  passwordHash  String
+  role          UserRole  @default(USER)
+  profilePhoto  String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  trips         Trip[]         @relation("CreatedTrips")
+  bookings      Booking[]
+  reviews       Review[]
+  favorites     Favorite[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]     @relation("ActorLogs")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Trip {
+  id              String     @id @default(uuid())
+  title           String
+  slug            String     @unique
+  description     String
+  itinerary       String?    @db.Text
+  price           Decimal    @db.Decimal(10, 2)
+  currency        String     @default("USD")
+  durationDays    Int
+  startDate       DateTime?
+  endDate         DateTime?
+  destinations    String[]
+  tags            String[]
+  seatsAvailable  Int
+  totalSeats      Int
+  occupancyPolicy String?
+  status          TripStatus @default(DRAFT)
+  createdById     String
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  // Relations
+  createdBy  User        @relation("CreatedTrips", fields: [createdById], references: [id])
+  images     TripImage[]
+  bookings   Booking[]
+  reviews    Review[]
+  favorites  Favorite[]
+
+  @@index([status])
+  @@index([slug])
+  @@index([destinations])
+  @@index([tags])
+  @@map("trips")
+}
+
+model TripImage {
+  id        String   @id @default(uuid())
+  tripId    String
+  url       String
+  altText   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  // Relations
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+  @@map("trip_images")
+}
+
+model Booking {
+  id               String        @id @default(uuid())
+  tripId           String
+  userId           String
+  status           BookingStatus @default(PENDING)
+  passengers       Json          // Array of passenger details
+  totalPrice       Decimal       @db.Decimal(10, 2)
+  paymentStatus    PaymentStatus @default(PENDING)
+  bookingReference String        @unique
+  bookingDate      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  cancelledAt      DateTime?
+  cancellationReason String?
+
+  // Relations
+  trip Trip @relation(fields: [tripId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([tripId])
+  @@index([userId])
+  @@index([status])
+  @@index([bookingReference])
+  @@map("bookings")
+}
+
+model Review {
+  id        String       @id @default(uuid())
+  tripId    String
+  userId    String
+  rating    Int          // 1-5
+  title     String?
+  comment   String       @db.Text
+  status    ReviewStatus @default(PUBLISHED)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // Relations
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([tripId, userId]) // One review per user per trip
+  @@index([tripId])
+  @@index([userId])
+  @@index([status])
+  @@map("reviews")
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  tripId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tripId]) // Prevent duplicates
+  @@index([userId])
+  @@map("favorites")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  action     String
+  targetType String
+  targetId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  timestamp  DateTime @default(now())
+
+  // Relations
+  actor User? @relation("ActorLogs", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([targetType])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
+  @@map("password_resets")
+}

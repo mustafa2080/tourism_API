@@ -1,0 +1,51 @@
+{
+  "name": "storck-tours-api",
+  "version": "1.0.0",
+  "description": "Production-ready REST API for Storck Tours travel company",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed": "node prisma/seed.js",
+    "postinstall": "prisma generate",
+    "db:push": "npx prisma db push",
+    "db:generate": "npx prisma generate",
+    "db:migrate": "npx prisma migrate deploy",
+    "db:studio": "npx prisma studio"
+  },
+  "keywords": [
+    "travel",
+    "tours",
+    "api",
+    "nodejs",
+    "express",
+    "prisma"
+  ],
+  "author": "Storck Tours",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.1.0",
+    "@prisma/client": "^7.1.0",
+    "@types/node": "^24.10.1",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "express-validator": "^7.3.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "pg": "^8.16.3",
+    "prisma": "^7.1.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
